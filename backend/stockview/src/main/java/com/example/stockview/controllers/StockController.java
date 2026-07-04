@@ -1,19 +1,39 @@
 package com.example.stockview.controllers;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
-import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+
+
+import com.example.stockview.services.StockService;
+import com.example.stockview.dtos.StockDto;
 
 @RestController
+@RequestMapping("/api/stocks")
 public class StockController {
 
-    @GetMapping("/api/stocks")
-    public List<Map<String, Object>> getStocks() {
-        return List.of(
-            Map.of("ticker", "AAPL", "name", "Apple Inc.", "price", 175.50),
-            Map.of("ticker", "TSLA", "name", "Tesla Inc.", "price", 180.20),
-            Map.of("ticker", "NVDA", "name", "NVIDIA Corp.", "price", 850.00)
-        );
+    private final StockService stockService;
+
+    public StockController(StockService stockService) {
+        this.stockService = stockService;
     }
+
+    @GetMapping 
+    public List<StockDto> getStocksByQuery(@RequestParam(value = "search", required = false) String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return stockService.getStockByQuery(query);
+    }
+    
+    @GetMapping("/{ticker}")
+    public ResponseEntity<StockDto> getStockByTicker(@PathVariable("ticker") String ticker) {
+        Optional<StockDto> stock = stockService.getStockByTicker(ticker);
+        if (stock.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(stock.get());
+    }
+
+    
 }
