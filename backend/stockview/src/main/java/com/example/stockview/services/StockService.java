@@ -1,13 +1,17 @@
 package com.example.stockview.services;
 
 import com.example.stockview.dtos.StockDto;
+import com.example.stockview.dtos.APIStockDto;
 import com.example.stockview.repositories.StockRepository;
-import com.example.stockview.entities.Stock;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
+import jakarta.transaction.Transactional;
+
+import com.example.stockview.entities.Stock;
+import java.util.*;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 
 
 
@@ -16,17 +20,13 @@ public class StockService {
 
     private final StockRepository stockRepository;
 
+    @Value("${twelvedata.api.key}")
+    private String apiKey;
+
+    private final RestClient restClient = RestClient.create();
+
     public StockService(StockRepository stockRepository) { 
         this.stockRepository = stockRepository;
-    }
-
-    /* Testing method */
-    public List<StockDto> getStocks() {
-        return List.of(
-            new StockDto("AAPL", "Apple Inc.", 175.50),
-            new StockDto("TSLA", "Tesla Inc.", 180.20),
-            new StockDto("NVDA", "NVIDIA Corp.", 850.00)
-        );
     }
 
     public List<StockDto> getStockByQuery(String query) {
@@ -37,12 +37,46 @@ public class StockService {
         return stockRepository.findByTicker(ticker.toUpperCase()).map(this::stockToDto);
     }
 
-    /* Converts to resposenses */
+    @Transactional
+    public Optional<StockDto> updateStockfromAPI(String ticker) {
+        String uppTicker = ticker.toUpperCase();
+        try {
+            String url = "https://api.twelvedate.com/quote?symbol={ticker}&apikey={apiKey}";
+            
+            APIStockDto response = restClient.get()
+                    .uri(url, uppTicker, apiKey)
+                    .retrieve()
+                    .body(APIStockDto.class);
+
+            if (response == null || "error".equals(response.status())) {
+                System.err.println("Twelve Data API vrátilo chybu pro ticker: " + uppTicker);
+                return Optional.empty();
+            }
+
+            String name = response.name();
+            double price = Double.parseDouble(response.close());
+            Optional<Stock> existingStock = stockRepository.findByTicker(uppTicker);
+            Stock stockToSave = existingStock.orElseGet(Stock::new); 
+        
+            stockToSave.setTicker(uppTicker);
+            stockToSave.setName(name);
+            stockToSave.setPrice(price);
+        
+            Stock savedStock = stockRepository.save(stockToSave);
+            return Optional.of(stockToDto(savedStock));
+        } catch (Exception e) {
+            System.err.println("Chyba při získávání dat z Twelve Data API pro ticker: " + uppTicker);
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+
+        /* Converts to resposenses */
     private StockDto stockToDto(Stock stock) {
         if (stock == null) {
             return null;
         }
         return new StockDto (stock.getTicker(), stock.getName(), stock.getPrice());
     }
-
 }

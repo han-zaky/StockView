@@ -10,6 +10,7 @@ import com.example.stockview.dtos.StockDto;
 
 @RestController
 @RequestMapping("/api/stocks")
+@CrossOrigin(origins = "http://localhost:3000")
 public class StockController {
 
     private final StockService stockService;
