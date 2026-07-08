@@ -7,6 +7,7 @@ public record APIStockDto (
     String open,
     String high,
     String low,
+    String currency,
     String status,
     String message
     ) {

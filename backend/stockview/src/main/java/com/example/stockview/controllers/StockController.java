@@ -36,5 +36,14 @@ public class StockController {
         return ResponseEntity.ok(stock.get());
     }
 
-    
+    @PostMapping("/{ticker}/refresh") 
+    public ResponseEntity<StockDto> updateStock(@PathVariable("ticker") String ticker) {
+        Optional<StockDto> updatedStock = stockService.updateStockfromAPI(ticker);
+        if (updatedStock.isPresent()) {
+            return ResponseEntity.ok(updatedStock.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
 }

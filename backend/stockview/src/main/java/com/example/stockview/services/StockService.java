@@ -41,7 +41,7 @@ public class StockService {
     public Optional<StockDto> updateStockfromAPI(String ticker) {
         String uppTicker = ticker.toUpperCase();
         try {
-            String url = "https://api.twelvedate.com/quote?symbol={ticker}&apikey={apiKey}";
+            String url = "https://api.twelvedata.com/quote?symbol={ticker}&apikey={apiKey}";
             
             APIStockDto response = restClient.get()
                     .uri(url, uppTicker, apiKey)
